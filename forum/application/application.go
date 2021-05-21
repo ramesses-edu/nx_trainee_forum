@@ -33,10 +33,6 @@ func New() *Application {
 		Handler: app.Router,
 		Addr:    app.Config.HostAddr,
 	}
-	return &app
-}
-
-func (app *Application) Start() {
 	gormDialector := mysql.New(mysql.Config{
 		DSN: fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Config.DB.UserDB, app.Config.DB.PassDB, app.Config.DB.HostDB, app.Config.DB.PortDB, app.Config.DB.NameDB),
 	})
@@ -48,19 +44,21 @@ func (app *Application) Start() {
 	//init DB tables
 	initDBTables(app.DB)
 	//init Routers
-	initRouters(app)
+	initRouters(&app)
+	return &app
+}
+
+func (app *Application) Start() {
 	//start Server
 	fmt.Println("App start")
 	app.Server.ListenAndServe()
 }
 
 func (app *Application) Close() {
-	fmt.Println("App stop")
 	sql, _ := app.DB.DB()
 	sql.Close()
 	app.Server.Shutdown(context.Background())
 	app = nil
-
 }
 
 func initRouters(app *Application) {

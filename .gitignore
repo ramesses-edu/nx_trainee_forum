@@ -13,3 +13,4 @@
 *.env
 *.mod
 *.sum
+forum/__debug_bin

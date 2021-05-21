@@ -19,8 +19,6 @@ import (
 
 func TestMain(t *testing.M) {
 	a = application.New()
-	a.Start()
-	defer a.Close()
 
 	createTestUser(a.DB)
 	code := t.Run()
