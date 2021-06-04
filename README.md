@@ -155,7 +155,7 @@ _______________________
 ### **GetAPIKey**
   Generate API Key for access without authentication (requires authorization). 
 ## **Authentication and Authorization**
-  Aplication provide OAuth authentication through social media networks: Google `/auth/google`, Facebook `/auth/facebook`, Twitter `/auth/twitter`.  
+  Application provide OAuth authentication through social media networks: Google `/auth/google`, Facebook `/auth/facebook`, Twitter `/auth/twitter`.  
   Authorization provide by:
   * `UAAT` cookie after authentication
   * `APIKey` HTTP header. API key can be generated `/getapikey` after authentication and used further without authentication until a new key is generated.
