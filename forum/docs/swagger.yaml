@@ -18,7 +18,7 @@ definitions:
       title:
         type: string
     type: object
-  models.Comment:
+  httphandlers.updateCommentStruct:
     properties:
       body:
         type: string
@@ -28,12 +28,8 @@ definitions:
         type: integer
       name:
         type: string
-      postId:
-        type: integer
-      userId:
-        type: integer
     type: object
-  models.Post:
+  httphandlers.updatePostStruct:
     properties:
       body:
         type: string
@@ -41,8 +37,6 @@ definitions:
         type: integer
       title:
         type: string
-      userId:
-        type: integer
     type: object
 host: localhost:80
 info:
@@ -112,7 +106,7 @@ paths:
         name: RequestPost
         required: true
         schema:
-          $ref: '#/definitions/models.Comment'
+          $ref: '#/definitions/httphandlers.updateCommentStruct'
       produces:
       - application/json
       responses:
@@ -161,6 +155,19 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Show comment
+  /getapikey:
+    get:
+      description: get api key for autorization
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ""
+        default:
+          description: ""
+      security:
+      - ApiKeyAuth: []
+      summary: Get API key
   /posts/:
     get:
       description: get posts
@@ -224,7 +231,7 @@ paths:
         name: RequestPost
         required: true
         schema:
-          $ref: '#/definitions/models.Post'
+          $ref: '#/definitions/httphandlers.updatePostStruct'
       produces:
       - application/json
       responses:

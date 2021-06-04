@@ -39,8 +39,8 @@ func init() {
 // @name APIKey
 func main() {
 	a = application.New()
-	a.Start()
-	defer a.Close()
 	docs.SwaggerInfo.BasePath = "/"
 	docs.SwaggerInfo.Schemes = []string{"http"}
+	a.Start()
+	defer a.Close()
 }

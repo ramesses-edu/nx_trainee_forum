@@ -10,7 +10,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-*.env
 *.mod
 *.sum
 forum/__debug_bin
+forum/config copy.env
+.vscode/launch.json

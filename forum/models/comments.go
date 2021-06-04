@@ -35,9 +35,6 @@ func (c *Comment) CreateComment(db *gorm.DB) *gorm.DB {
 	if c.Email != "" && !reEmail.Match([]byte(c.Email)) {
 		return &gorm.DB{Error: gorm.ErrInvalidValue}
 	}
-	if c.PostID == 0 {
-		return db.Select("UserID", "Name", "Email", "Body").Create(&c)
-	}
 	return db.Select("PostID", "UserID", "Name", "Email", "Body").Create(&c)
 }
 func (c *Comment) UpdateComment(db *gorm.DB) *gorm.DB {
@@ -45,7 +42,7 @@ func (c *Comment) UpdateComment(db *gorm.DB) *gorm.DB {
 	if c.Email != "" && !reEmail.Match([]byte(c.Email)) {
 		return &gorm.DB{Error: gorm.ErrInvalidValue}
 	}
-	return db.Model(&c).Updates(Comment{PostID: c.PostID, UserID: c.UserID, Name: c.Name, Email: c.Email, Body: c.Body})
+	return db.Model(&c).Updates(Comment{Name: c.Name, Email: c.Email, Body: c.Body})
 }
 func (c *Comment) DeleteComment(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", c.UserID).Delete(&c)

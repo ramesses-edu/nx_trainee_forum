@@ -85,7 +85,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Comment"
+                            "$ref": "#/definitions/httphandlers.updateCommentStruct"
                         }
                     }
                 ],
@@ -201,6 +201,28 @@ var doc = `{
                 }
             }
         },
+        "/getapikey": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "get api key for autorization",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get API key",
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/posts/": {
             "get": {
                 "security": [
@@ -266,7 +288,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Post"
+                            "$ref": "#/definitions/httphandlers.updatePostStruct"
                         }
                     }
                 ],
@@ -459,7 +481,7 @@ var doc = `{
                 }
             }
         },
-        "models.Comment": {
+        "httphandlers.updateCommentStruct": {
             "type": "object",
             "properties": {
                 "body": {
@@ -473,16 +495,10 @@ var doc = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "postId": {
-                    "type": "integer"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         },
-        "models.Post": {
+        "httphandlers.updatePostStruct": {
             "type": "object",
             "properties": {
                 "body": {
@@ -493,9 +509,6 @@ var doc = `{
                 },
                 "title": {
                     "type": "string"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         }

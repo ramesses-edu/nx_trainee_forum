@@ -85,7 +85,7 @@ func CallbackFacebook(cfg *config.Config, db *gorm.DB, w http.ResponseWriter, r 
 	}
 	//generate new accessToken for user
 	accessToken := GenerateAccessToken()
-	hashAccToken := CalculateSignature(accessToken, "provider")
+	hashAccToken := CalculateSignature(accessToken, cfg.HASHKey)
 	//check user registration
 	var u models.User
 	result := u.GetUser(db, map[string]interface{}{
@@ -99,6 +99,7 @@ func CallbackFacebook(cfg *config.Config, db *gorm.DB, w http.ResponseWriter, r 
 			Provider:    "facebook",
 			Name:        respMap["name"].(string),
 			AccessToken: hashAccToken,
+			APIKey:      CalculateSignature(GenerateAccessToken(), cfg.HASHKey),
 		}
 		result = u.CreateUser(db)
 	} else {

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -9,6 +10,8 @@ import (
 	"nx_trainee_forum/forum/httphandlers"
 	"nx_trainee_forum/forum/httphandlers/middleware"
 	"nx_trainee_forum/forum/models"
+	"os"
+	"time"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/driver/mysql"
@@ -19,7 +22,9 @@ type Application struct {
 	DB     *gorm.DB
 	Config *config.Config
 	Router *http.ServeMux
-	Server *http.Server
+	server *http.Server
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 func New() *Application {
@@ -29,10 +34,11 @@ func New() *Application {
 	//init Router
 	app.Router = http.NewServeMux()
 	//init Server
-	app.Server = &http.Server{
+	app.server = &http.Server{
 		Handler: app.Router,
 		Addr:    app.Config.HostAddr,
 	}
+	app.ctx, app.cancel = context.WithCancel(context.Background())
 	gormDialector := mysql.New(mysql.Config{
 		DSN: fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", app.Config.DB.UserDB, app.Config.DB.PassDB, app.Config.DB.HostDB, app.Config.DB.PortDB, app.Config.DB.NameDB),
 	})
@@ -51,27 +57,45 @@ func New() *Application {
 func (app *Application) Start() {
 	//start Server
 	fmt.Println("App start")
-	app.Server.ListenAndServe()
+	go app.server.ListenAndServe()
+	var command string
+	for {
+		fmt.Print(">>: ")
+		myscan := bufio.NewScanner(os.Stdin)
+		myscan.Scan()
+		command = myscan.Text()
+		switch command {
+		case "server shutdown":
+			fmt.Println(command)
+			app.Close()
+			return
+		default:
+			fmt.Println("invalid command: " + command)
+		}
+	}
 }
 
 func (app *Application) Close() {
 	sql, _ := app.DB.DB()
 	sql.Close()
-	app.Server.Shutdown(context.Background())
+	ctxsd, cancel := context.WithTimeout(app.ctx, 5*time.Second)
+	defer cancel()
+	app.server.Shutdown(ctxsd)
 	app = nil
 }
 
 func initRouters(app *Application) {
 	router := app.Router
-	router.Handle("/", httphandlers.MainHandler(app.DB))
+	router.Handle("/", httphandlers.MainHandler(app.DB, app.Config))
 	router.Handle("/public", http.NotFoundHandler())
 	router.Handle("/public/", httphandlers.PublicHandler())
-	router.Handle("/logout/", httphandlers.LogoutHandler(app.DB))
-	router.Handle("/auth/", httphandlers.Authentification(app.Config, app.DB))
-	router.Handle("/posts", middleware.Authorization(app.DB, httphandlers.PostsHandler(app.DB)))
-	router.Handle("/posts/", middleware.Authorization(app.DB, httphandlers.PostsHandler(app.DB)))
-	router.Handle("/comments", middleware.Authorization(app.DB, httphandlers.CommentsHandler(app.DB)))
-	router.Handle("/comments/", middleware.Authorization(app.DB, httphandlers.CommentsHandler(app.DB)))
+	router.Handle("/logout/", httphandlers.LogoutHandler(app.Config, app.DB))
+	router.Handle("/auth/", httphandlers.Authentication(app.Config, app.DB))
+	router.Handle("/getapikey", middleware.Authorization(app.Config, app.DB, httphandlers.GetAPIKeyHandler(app.DB, app.Config)))
+	router.Handle("/posts", middleware.Authorization(app.Config, app.DB, httphandlers.PostsHandler(app.Config, app.DB)))
+	router.Handle("/posts/", middleware.Authorization(app.Config, app.DB, httphandlers.PostsHandler(app.Config, app.DB)))
+	router.Handle("/comments", middleware.Authorization(app.Config, app.DB, httphandlers.CommentsHandler(app.Config, app.DB)))
+	router.Handle("/comments/", middleware.Authorization(app.Config, app.DB, httphandlers.CommentsHandler(app.Config, app.DB)))
 	router.HandleFunc("/swagger/", httpSwagger.Handler(
 		httpSwagger.URL("localhost/swagger/doc.json"),
 	))

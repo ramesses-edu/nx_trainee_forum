@@ -70,25 +70,32 @@ func GenerateAccessToken() string {
 	return state
 }
 
-func GetCurrentUser(db *gorm.DB, r *http.Request) models.User {
+func GetCurrentUser(cfg *config.Config, db *gorm.DB, r *http.Request) models.User {
 	accessToken := ""
+	apiKey := ""
+	var u models.User = models.User{}
 	accessTokenCookie, err := r.Cookie("UAAT")
 	if err == nil {
 		accessToken = accessTokenCookie.Value
 	}
-	if accessToken == "" {
-		accessToken = r.Header.Get("APIKey")
+	apiKey = r.Header.Get("APIKey")
+	if accessToken != "" {
+		hashAccTok := CalculateSignature(accessToken, cfg.HASHKey)
+		result := u.GetUser(db, map[string]interface{}{
+			"access_token": hashAccTok,
+		})
+		if result.Error != nil || result.RowsAffected == 0 {
+			u = models.User{}
+		}
 	}
-	if accessToken == "" {
-		return models.User{}
-	}
-	hashAccTok := CalculateSignature(accessToken, "provider")
-	var u models.User
-	result := u.GetUser(db, map[string]interface{}{
-		"access_token": hashAccTok,
-	})
-	if result.Error != nil || result.RowsAffected == 0 {
-		return models.User{}
+	if apiKey != "" {
+		hashApiKey := CalculateSignature(apiKey, cfg.HASHKey)
+		result_apiKey := u.GetUser(db, map[string]interface{}{
+			"apikey": hashApiKey,
+		})
+		if result_apiKey.Error != nil || result_apiKey.RowsAffected == 0 {
+			u = models.User{}
+		}
 	}
 	return u
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"nx_trainee_forum/forum/application/config"
 	"nx_trainee_forum/forum/httphandlers/authorization"
+	"nx_trainee_forum/forum/models"
 	"path/filepath"
 	"regexp"
 
@@ -18,7 +19,7 @@ var (
 	reNum *regexp.Regexp = regexp.MustCompile(`\d+`)
 )
 
-func Authentification(cfg *config.Config, db *gorm.DB) http.Handler {
+func Authentication(cfg *config.Config, db *gorm.DB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rPath := r.URL.Path
 		reGoogleProvider := regexp.MustCompile(`\/auth\/google(\/)??`)
@@ -27,10 +28,25 @@ func Authentification(cfg *config.Config, db *gorm.DB) http.Handler {
 		reCallback := regexp.MustCompile(`\/auth\/callback(\/)??\w+`)
 		switch {
 		case reGoogleProvider.Match([]byte(rPath)):
+			if !cfg.Google.Access {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(`{"error":""}`))
+				return
+			}
 			authorization.AuthGoogle(cfg, w, r)
 		case reFacebookProvider.Match([]byte(rPath)):
+			if !cfg.Facebook.Access {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(`{"error":""}`))
+				return
+			}
 			authorization.AuthFacebook(cfg, w, r)
 		case reTwitterProvider.Match([]byte(rPath)):
+			if !cfg.Twitter.Access {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(`{"error":""}`))
+				return
+			}
 			authorization.AuthTwitter(cfg, w, r)
 		case reCallback.Match([]byte(rPath)):
 			oauthCallback(cfg, db, w, r)
@@ -53,14 +69,48 @@ func oauthCallback(cfg *config.Config, db *gorm.DB, w http.ResponseWriter, r *ht
 	}
 }
 
-func MainHandler(db *gorm.DB) http.Handler {
+func MainHandler(db *gorm.DB, cfg *config.Config) http.Handler {
+	type templ struct {
+		Config *config.Config
+		User   models.User
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := authorization.GetCurrentUser(db, r)
+		u := authorization.GetCurrentUser(cfg, db, r)
 		t, err := template.ParseFiles("./templates/index.html")
 		if err != nil {
 			fmt.Println(err)
 		}
-		t.Execute(w, u)
+		t.Execute(w, templ{Config: cfg, User: u})
+	})
+}
+
+//@Summary Get API key
+//@description get api key for autorization
+//@Produce json
+//@Success 200
+//@Failure default
+//@Router /getapikey [get]
+//@Security ApiKeyAuth
+func GetAPIKeyHandler(db *gorm.DB, cfg *config.Config) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := authorization.GetCurrentUser(cfg, db, r)
+		if u.ID == 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":""}`))
+			return
+		}
+		apiKey := authorization.GenerateAccessToken()
+		hashApiKey := authorization.CalculateSignature(apiKey, cfg.HASHKey)
+		u.APIKey = hashApiKey
+		result := u.UpdAPIKey(db)
+		if result.Error != nil || result.RowsAffected == 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":""}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf(`{"APIKey": "%s"}`, apiKey)))
 	})
 }
 
@@ -94,14 +144,14 @@ func PublicHandler() http.Handler {
 	return http.StripPrefix("/public/", http.FileServer(myFileSystem{fs: http.Dir("./static")}))
 }
 
-func LogoutHandler(db *gorm.DB) http.Handler {
+func LogoutHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := authorization.GetCurrentUser(db, r)
+		u := authorization.GetCurrentUser(cfg, db, r)
 		if u.ID == 0 {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
-		u.AccessToken = authorization.CalculateSignature(authorization.GenerateAccessToken(), "provider")
+		u.AccessToken = authorization.CalculateSignature(authorization.GenerateAccessToken(), cfg.HASHKey)
 		u.UpdateAccessToken(db)
 		cookie := http.Cookie{Name: "UAAT", Path: "/", MaxAge: -1}
 		http.SetCookie(w, &cookie)

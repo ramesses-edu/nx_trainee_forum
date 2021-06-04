@@ -3,41 +3,66 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="/public/bootstrap/bootstrap-5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet">        
+        <link href="/public/bootstrap/bootstrap-5.0.0-beta3/css/bootstrap.min.css" rel="stylesheet">
+        <script src="/public/js/index.js"></script>        
         <title>Index</title>
     </head>
     <body>        
         <div class="container-lg">                    
-            {{if eq .ID 0 }}
+            {{if eq .User.ID 0 }}
             <div class="row justify-content-center">
+              {{if or (or (eq .Config.Twitter.Access true) (eq .Config.Google.Access true)) (eq .Config.Facebook.Access true)}}
               <h2 style="text-align:center">Login with Social Media</h2>
+              {{else}}
+              <h4 style="text-align:center">Login with Social Media Unavailable</h4>
+              {{end}}
+              {{if eq .Config.Twitter.Access true}}
               <div class="col-lg-4 gy-1">
                   <a href="/auth/twitter" class="btn btn-outline-dark" role="button" style="width: 100%">
                     <img width="20px" style="margin-bottom:3px; margin-right:5px" alt="Twitter sign-in" src="/public/image/twitter_logo.png" />
                     Login with Twitter
                   </a>
               </div>
+              {{end}}              
              </div>                          
              <div class="row justify-content-center">
+              {{if eq .Config.Google.Access true}}
               <div class="col-lg-4 gy-1">
                   <a href="/auth/google" class="btn btn-outline-dark" role="button" style="width: 100%">
                     <img width="20px" style="margin-bottom:3px; margin-right:5px" alt="Google sign-in" src="/public/image/g_logo.png" />
                     Login with Google+
                   </a>
               </div>
+              {{end}}
              </div>
              <div class="row justify-content-center">                                        
+              {{if eq .Config.Facebook.Access true}}
               <div class="col-lg-4 gy-1">
                 <a href="/auth/facebook" class="btn btn-outline-dark" role="button" style="width: 100%">
                   <img width="20px" style="margin-bottom:3px; margin-right:5px" alt="Facebook sign-in" src="/public/image/fb_logo.png" />
                   Login with Facebook
                 </a>
               </div>
+              {{end}}
            </div>                
             </div>    
             {{else}}
             <div class="row justify-content-center">
-              <h4 style="text-align: center">Hello, {{.Name}}  <a href="/logout" style="font-size: 14px">Logout</a></h4>
+              <h4 style="text-align: center">Hello, {{.User.Name}}  <a href="/logout" style="font-size: 14px">Logout</a></h4>
+            </div>
+            <div class="row justify-content-center">
+              <div id=apiKey class="row justify-content-center">
+                <button type="button" class="btn btn-primary" style="width: 200px" id="gapik">Generate API Key</button>
+              </div>
+              <div class="row justify-content-center">
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="apikalert">
+                  <div class="toast-body">
+                    <div id="apikalerttxt"></div>
+                    <div class="mt-2 pt-2 border-top">                      
+                      <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="toast">Save</button>
+                    </div>
+                  </div>
+                </div>
             </div>
             {{end}}          
         </div>                   

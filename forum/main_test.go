@@ -29,7 +29,7 @@ func TestMain(t *testing.M) {
 }
 
 func createTestUser(db *gorm.DB) {
-	var u models.User = models.User{Login: "test", Name: "test", Provider: "test", AccessToken: authorization.CalculateSignature("test", "provider")}
+	var u models.User = models.User{Login: "test", Name: "test", Provider: "test", APIKey: authorization.CalculateSignature("test", a.Config.HASHKey)}
 	result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&u)
 	if result.Error != nil {
 		log.Fatal(result.Error)
@@ -84,7 +84,7 @@ func TestEmptyCommentsTable(t *testing.T) {
 	}
 }
 func TestUnautorizedAccess(t *testing.T) {
-	request, _ := http.NewRequest(http.MethodGet, "/posts/", nil)
+	request, _ := http.NewRequest(http.MethodPost, "/posts/", nil)
 	resp := execRequest(request)
 	checkRespCode(t, http.StatusNetworkAuthenticationRequired, resp.Code)
 	body := resp.Body.Bytes()
@@ -93,7 +93,7 @@ func TestUnautorizedAccess(t *testing.T) {
 	if _, ok := umBody["error"]; !ok {
 		t.Errorf("Expected error JSON message. Got %s", resp.Body.String())
 	}
-	request, _ = http.NewRequest(http.MethodGet, "/comments/", nil)
+	request, _ = http.NewRequest(http.MethodPost, "/comments/", nil)
 	resp = execRequest(request)
 	checkRespCode(t, http.StatusNetworkAuthenticationRequired, resp.Code)
 	body = resp.Body.Bytes()

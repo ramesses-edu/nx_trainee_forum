@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"nx_trainee_forum/forum/application/config"
 	"nx_trainee_forum/forum/httphandlers/authorization"
 	"nx_trainee_forum/forum/models"
 	"regexp"
@@ -13,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func CommentsHandler(db *gorm.DB) http.Handler {
+func CommentsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		rPath := r.URL.Path
@@ -26,9 +27,9 @@ func CommentsHandler(db *gorm.DB) http.Handler {
 			case http.MethodGet: // list comments with filters
 				listCommentsHTTP(db, w, r)
 			case http.MethodPost: // create comment in:json
-				createCommentHTTP(db, w, r)
+				createCommentHTTP(cfg, db, w, r)
 			case http.MethodPut: // update comment in:json
-				updateCommentHTTP(db, w, r)
+				updateCommentHTTP(cfg, db, w, r)
 			default:
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				w.Write([]byte(`{"error":""}`))
@@ -39,7 +40,7 @@ func CommentsHandler(db *gorm.DB) http.Handler {
 			case http.MethodGet: // get comments/{id}
 				getCommentByIDHTTP(db, w, r)
 			case http.MethodDelete: // delete comments/{id}
-				deleteCommentHTTP(db, w, r)
+				deleteCommentHTTP(cfg, db, w, r)
 			default:
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				w.Write([]byte(`{"error":""}`))
@@ -127,6 +128,12 @@ type createCommentStruct struct {
 	Email  string
 	Body   string
 }
+type updateCommentStruct struct {
+	ID    int
+	Name  string
+	Email string
+	Body  string
+}
 
 //@Summary Create comment
 //@description create comment
@@ -138,8 +145,8 @@ type createCommentStruct struct {
 //@Failure default
 //@Router /comments/ [post]
 //@Security ApiKeyAuth
-func createCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func createCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -157,6 +164,11 @@ func createCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(reqBody, &c)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if c.Name == "" || c.Email == "" || c.Body == "" || c.PostID == 0 {
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
@@ -177,14 +189,14 @@ func createCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 //@description update comment
 //@Accept json
 //@Produce json
-//@Param RequestPost body models.Comment true "JSON structure for creating post"
+//@Param RequestPost body updateCommentStruct true "JSON structure for creating post"
 //@Success 200
 //@Failure 400
 //@Failure default
 //@Router /comments/ [put]
 //@Security ApiKeyAuth
-func updateCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func updateCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -204,8 +216,19 @@ func updateCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
-	c.UserID = u.ID
-	result := c.UpdateComment(DB)
+	var cUpd models.Comment
+	result := cUpd.GetComment(DB, map[string]interface{}{"id": c.ID})
+	if result.Error != nil || result.RowsAffected == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if cUpd.UserID != u.ID {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	result = c.UpdateComment(DB)
 	if result.Error != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error":""}`))
@@ -223,8 +246,8 @@ func updateCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 //@Failure default
 //@Router /comments/{id} [delete]
 //@Security ApiKeyAuth
-func deleteCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func deleteCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -237,8 +260,20 @@ func deleteCommentHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
+	var cDel models.Comment
+	result := cDel.GetComment(DB, map[string]interface{}{"id": cID})
+	if result.Error != nil || result.RowsAffected == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if cDel.UserID != u.ID {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
 	var c models.Comment = models.Comment{ID: cID, UserID: u.ID}
-	result := c.DeleteComment(DB)
+	result = c.DeleteComment(DB)
 	if result.Error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))

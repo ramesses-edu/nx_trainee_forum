@@ -70,7 +70,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Comment"
+                            "$ref": "#/definitions/httphandlers.updateCommentStruct"
                         }
                     }
                 ],
@@ -186,6 +186,28 @@
                 }
             }
         },
+        "/getapikey": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "get api key for autorization",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get API key",
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "default": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/posts/": {
             "get": {
                 "security": [
@@ -251,7 +273,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Post"
+                            "$ref": "#/definitions/httphandlers.updatePostStruct"
                         }
                     }
                 ],
@@ -444,7 +466,7 @@
                 }
             }
         },
-        "models.Comment": {
+        "httphandlers.updateCommentStruct": {
             "type": "object",
             "properties": {
                 "body": {
@@ -458,16 +480,10 @@
                 },
                 "name": {
                     "type": "string"
-                },
-                "postId": {
-                    "type": "integer"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         },
-        "models.Post": {
+        "httphandlers.updatePostStruct": {
             "type": "object",
             "properties": {
                 "body": {
@@ -478,9 +494,6 @@
                 },
                 "title": {
                     "type": "string"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         }

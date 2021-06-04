@@ -16,10 +16,12 @@ type DBCfg struct {
 }
 type GoogleAuthCfg struct {
 	Config *oauth2.Config
+	Access bool
 }
 type FacebookAuthCfg struct {
 	Config     *oauth2.Config
 	APIVersion string
+	Access     bool
 }
 type TwitterAuthCfg struct {
 	TwitterAPIKey      string
@@ -30,6 +32,7 @@ type TwitterAuthCfg struct {
 	ReqTokenURL        string
 	AuthURL            string
 	TokenURL           string
+	Access             bool
 }
 
 type Config struct {
@@ -38,6 +41,7 @@ type Config struct {
 	Facebook FacebookAuthCfg
 	Twitter  TwitterAuthCfg
 	HostAddr string
+	HASHKey  string
 }
 
 func New() *Config {
@@ -60,6 +64,7 @@ func New() *Config {
 					TokenURL: getEnv("GA_TOKEN_URL", ""),
 				},
 			},
+			Access: accessField(getEnv("GA_CLIENT_ID", ""), getEnv("GA_CLIENT_SECRET", "")),
 		},
 		Facebook: FacebookAuthCfg{
 			Config: &oauth2.Config{
@@ -73,6 +78,7 @@ func New() *Config {
 				},
 			},
 			APIVersion: getEnv("FBA_API_VERSION", "v10.0"),
+			Access:     accessField(getEnv("FBA_CLIENT_ID", ""), getEnv("FBA_CLIENT_SECRET", "")),
 		},
 		Twitter: TwitterAuthCfg{
 			TwitterAPIKey:      getEnv("TA_TWITTER_API_KEY", ""),
@@ -83,8 +89,11 @@ func New() *Config {
 			ReqTokenURL:        getEnv("TA_REQUEST_TOKEN_URL", ""),
 			AuthURL:            getEnv("TA_AUTH_URL", ""),
 			TokenURL:           getEnv("TA_TOKEN_URL", ""),
+			Access: accessField(getEnv("TA_TWITTER_API_KEY", ""), getEnv("TA_TWITTER_API_SECRET", ""),
+				getEnv("TA_TWITTER_TOKEN_KEY", ""), getEnv("TA_TWITTER_TOKEN_SECRET", "")),
 		},
 		HostAddr: getEnv("HOST_ADDRESS", "localhost:80"),
+		HASHKey:  getEnv("HASH_KEY", "provider"),
 	}
 }
 
@@ -102,4 +111,14 @@ func getEnvAsSlice(name string, defaultVal []string, sep string) []string {
 	}
 	val := strings.Split(valStr, sep)
 	return val
+}
+
+func accessField(args ...string) bool {
+	res := true
+	for _, arg := range args {
+		if arg == "" {
+			res = res && false
+		}
+	}
+	return res
 }

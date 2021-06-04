@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"nx_trainee_forum/forum/application/config"
 	"nx_trainee_forum/forum/httphandlers/authorization"
 	"nx_trainee_forum/forum/models"
 	"regexp"
@@ -13,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func PostsHandler(db *gorm.DB) http.Handler {
+func PostsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		rPath := r.URL.Path
@@ -27,9 +28,9 @@ func PostsHandler(db *gorm.DB) http.Handler {
 			case http.MethodGet: //list posts with filters
 				listPostsHTTP(db, w, r)
 			case http.MethodPost: //create post in:json
-				createPostHTTP(db, w, r)
+				createPostHTTP(cfg, db, w, r)
 			case http.MethodPut: //update post  in:json
-				updatePostHTTP(db, w, r)
+				updatePostHTTP(cfg, db, w, r)
 			default:
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				w.Write([]byte(`{"error":""}`))
@@ -40,7 +41,7 @@ func PostsHandler(db *gorm.DB) http.Handler {
 			case http.MethodGet: // get posts/{id}
 				getPostByIDHTTP(db, w, r)
 			case http.MethodDelete: // delete posts/{id}
-				deletePostHTTP(db, w, r)
+				deletePostHTTP(cfg, db, w, r)
 			default:
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				w.Write([]byte(`{"error":""}`))
@@ -144,6 +145,11 @@ type createPostStruct struct {
 	Title string
 	Body  string
 }
+type updatePostStruct struct {
+	ID    int
+	Title string
+	Body  string
+}
 
 //@Summary Create post
 //@Description create post
@@ -155,8 +161,8 @@ type createPostStruct struct {
 //@Failure default
 //@Router /posts/ [POST]
 //@Security ApiKeyAuth
-func createPostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func createPostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -174,6 +180,11 @@ func createPostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(reqBody, &p)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if p.Title == "" || p.Body == "" {
+		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
@@ -194,14 +205,14 @@ func createPostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 //@Description update post
 //@Accept json
 //@Produce json
-//@Param RequestPost body models.Post true "JSON structure for updating post"
+//@Param RequestPost body updatePostStruct true "JSON structure for updating post"
 //@Success 200
 //@Failure 400
 //@Failure default
 //@Router /posts/ [put]
 //@Security ApiKeyAuth
-func updatePostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -222,8 +233,19 @@ func updatePostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
-	p.UserID = u.ID
-	result := p.UpdatePost(DB)
+	var pUpd models.Post
+	result := pUpd.GetPost(DB, map[string]interface{}{"id": p.ID})
+	if result.Error != nil || result.RowsAffected == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if pUpd.UserID != u.ID {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	result = p.UpdatePost(DB)
 	if result.Error != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"error":""}`))
@@ -241,8 +263,8 @@ func updatePostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 //@Failure default
 //@Router /posts/{id} [delete]
 //@Security ApiKeyAuth
-func deletePostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
-	u := authorization.GetCurrentUser(DB, r)
+func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
+	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))
@@ -255,8 +277,20 @@ func deletePostHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"error":""}`))
 		return
 	}
+	var pDel models.Post
+	result := pDel.GetPost(DB, map[string]interface{}{"id": pID})
+	if result.Error != nil || result.RowsAffected == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
+	if pDel.UserID != u.ID {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":""}`))
+		return
+	}
 	var p models.Post = models.Post{ID: pID, UserID: u.ID}
-	result := p.DeletePost(DB)
+	result = p.DeletePost(DB)
 	if result.Error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":""}`))

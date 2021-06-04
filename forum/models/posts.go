@@ -32,7 +32,7 @@ func (p *Post) CreatePost(db *gorm.DB) *gorm.DB {
 	return db.Select("UserID", "Title", "Body").Create(&p)
 }
 func (p *Post) UpdatePost(db *gorm.DB) *gorm.DB {
-	return db.Model(&p).Updates(Post{UserID: p.UserID, Title: p.Title, Body: p.Body})
+	return db.Model(&p).Updates(Post{Title: p.Title, Body: p.Body})
 }
 func (p *Post) DeletePost(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", p.UserID).Delete(&p)
