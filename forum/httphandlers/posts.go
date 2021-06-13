@@ -32,8 +32,7 @@ func PostsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 			case http.MethodPut: //update post  in:json
 				updatePostHTTP(cfg, db, w, r)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusMethodNotAllowed, "")
 				return
 			}
 		case rePostsID.Match([]byte(rPath)):
@@ -43,8 +42,7 @@ func PostsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 			case http.MethodDelete: // delete posts/{id}
 				deletePostHTTP(cfg, db, w, r)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusMethodNotAllowed, "")
 				return
 			}
 		case rePostsComments.Match([]byte(rPath)):
@@ -52,14 +50,11 @@ func PostsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 			case http.MethodGet: // list comments like->/comments?postId={id}
 				listPostCommentsHTTP(db, w, r)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusMethodNotAllowed, "")
 				return
 			}
 		default:
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusBadRequest, "")
 		}
 	})
 
@@ -83,8 +78,7 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		var err error
 		param["userId"], err = strconv.Atoi(r.FormValue("userId"))
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusBadRequest, "")
 			return
 		}
 	}
@@ -92,12 +86,10 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	result := pp.ListPosts(DB, param)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusNotFound, "")
 			return
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if responseXML(r) {
@@ -123,15 +115,13 @@ func getPostByIDHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	var err error
 	param["id"], err = strconv.Atoi(reNum.FindString(r.URL.Path))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var p models.Post
 	result := p.GetPost(DB, param)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusNotFound, "")
 		return
 	}
 	if responseXML(r) {
@@ -164,35 +154,30 @@ type updatePostStruct struct {
 func createPostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var p models.Post
 	err = json.Unmarshal(reqBody, &p)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if p.Title == "" || p.Body == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	p.UserID = u.ID
 	result := p.CreatePost(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -214,41 +199,35 @@ func createPostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var p models.Post
 	err = json.Unmarshal(reqBody, &p)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	var pUpd models.Post
 	result := pUpd.GetPost(DB, map[string]interface{}{"id": p.ID})
 	if result.Error != nil || result.RowsAffected == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	if pUpd.UserID != u.ID {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	result = p.UpdatePost(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -266,34 +245,29 @@ func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	pID, err := strconv.Atoi(reNum.FindString(r.URL.Path))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	var pDel models.Post
 	result := pDel.GetPost(DB, map[string]interface{}{"id": pID})
 	if result.Error != nil || result.RowsAffected == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	if pDel.UserID != u.ID {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var p models.Post = models.Post{ID: pID, UserID: u.ID}
 	result = p.DeletePost(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -312,15 +286,13 @@ func listPostCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	var err error
 	param["postId"], err = strconv.Atoi(reNum.FindString(r.URL.Path))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var cc models.Comments
 	result := cc.ListComments(DB, param)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if responseXML(r) {

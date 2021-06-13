@@ -31,8 +31,7 @@ func CommentsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 			case http.MethodPut: // update comment in:json
 				updateCommentHTTP(cfg, db, w, r)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusMethodNotAllowed, "")
 				return
 			}
 		case reCommentsID.Match([]byte(rPath)):
@@ -42,14 +41,11 @@ func CommentsHandler(cfg *config.Config, db *gorm.DB) http.Handler {
 			case http.MethodDelete: // delete comments/{id}
 				deleteCommentHTTP(cfg, db, w, r)
 			default:
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusMethodNotAllowed, "")
 				return
 			}
 		default:
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusBadRequest, "")
 		}
 	})
 
@@ -71,16 +67,14 @@ func listCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		var err error
 		param["postId"], err = strconv.Atoi(r.FormValue("postId"))
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusBadRequest, "")
 			return
 		}
 	}
 	var cc models.Comments
 	result := cc.ListComments(DB, param)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if responseXML(r) {
@@ -103,15 +97,13 @@ func getCommentByIDHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	var err error
 	param["id"], err = strconv.Atoi(reNum.FindString(r.URL.Path))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var cmnt models.Comment
 	result := cmnt.GetComment(DB, param)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusNotFound, "")
 		return
 	}
 
@@ -148,35 +140,30 @@ type updateCommentStruct struct {
 func createCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var c models.Comment
 	err = json.Unmarshal(reqBody, &c)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if c.Name == "" || c.Email == "" || c.Body == "" || c.PostID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	c.UserID = u.ID
 	result := c.CreateComment(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -198,40 +185,34 @@ func createCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 func updateCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	reqBody, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var c models.Comment
 	err = json.Unmarshal(reqBody, &c)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	var cUpd models.Comment
 	result := cUpd.GetComment(DB, map[string]interface{}{"id": c.ID})
 	if result.Error != nil || result.RowsAffected == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	if cUpd.UserID != u.ID {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	result = c.UpdateComment(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -249,34 +230,29 @@ func updateCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 func deleteCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	u := authorization.GetCurrentUser(cfg, DB, r)
 	if u.ID == 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 
 	cID, err := strconv.Atoi(reNum.FindString(r.URL.Path))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var cDel models.Comment
 	result := cDel.GetComment(DB, map[string]interface{}{"id": cID})
 	if result.Error != nil || result.RowsAffected == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	if cDel.UserID != u.ID {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
 	var c models.Comment = models.Comment{ID: cID, UserID: u.ID}
 	result = c.DeleteComment(DB)
 	if result.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	w.WriteHeader(http.StatusOK)

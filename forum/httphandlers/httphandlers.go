@@ -29,28 +29,28 @@ func Authentication(cfg *config.Config, db *gorm.DB) http.Handler {
 		switch {
 		case reGoogleProvider.Match([]byte(rPath)):
 			if !cfg.Google.Access {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusServiceUnavailable, "")
 				return
 			}
 			authorization.AuthGoogle(cfg, w, r)
 		case reFacebookProvider.Match([]byte(rPath)):
 			if !cfg.Facebook.Access {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusServiceUnavailable, "")
 				return
 			}
 			authorization.AuthFacebook(cfg, w, r)
 		case reTwitterProvider.Match([]byte(rPath)):
 			if !cfg.Twitter.Access {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				w.Write([]byte(`{"error":""}`))
+				ResponseError(w, http.StatusServiceUnavailable, "")
 				return
 			}
 			authorization.AuthTwitter(cfg, w, r)
 		case reCallback.Match([]byte(rPath)):
 			oauthCallback(cfg, db, w, r)
+		default:
+			ResponseError(w, http.StatusForbidden, "")
 		}
+
 	})
 }
 
@@ -95,8 +95,7 @@ func GetAPIKeyHandler(db *gorm.DB, cfg *config.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := authorization.GetCurrentUser(cfg, db, r)
 		if u.ID == 0 {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusInternalServerError, "")
 			return
 		}
 		apiKey := authorization.GenerateAccessToken()
@@ -104,8 +103,7 @@ func GetAPIKeyHandler(db *gorm.DB, cfg *config.Config) http.Handler {
 		u.APIKey = hashApiKey
 		result := u.UpdAPIKey(db)
 		if result.Error != nil || result.RowsAffected == 0 {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{"error":""}`))
+			ResponseError(w, http.StatusInternalServerError, "")
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -169,8 +167,7 @@ func responseXML(r *http.Request) bool {
 func xmlWrite(w http.ResponseWriter, data interface{}) error {
 	xmlB, err := xml.MarshalIndent(data, "", " ")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return err
 	}
 	w.Header().Set("Content-Type", "application/xml")
@@ -182,12 +179,17 @@ func xmlWrite(w http.ResponseWriter, data interface{}) error {
 func jsonWrite(w http.ResponseWriter, data interface{}) error {
 	jsonB, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":""}`))
+		ResponseError(w, http.StatusInternalServerError, "")
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, string(jsonB))
 	return nil
+}
+
+func ResponseError(w http.ResponseWriter, code int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	fmt.Fprintf(w, `{"error": "%s"}`, msg)
 }
