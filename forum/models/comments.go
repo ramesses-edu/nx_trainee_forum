@@ -7,13 +7,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type Comments struct {
+type Comments struct { //structure for response array of comments in xml format 
 	XMLName  xml.Name  `xml:"comments" json:"-" gorm:"-"`
 	Comments []Comment `xml:"comment"`
-}
-
-func (cc *Comments) ListComments(db *gorm.DB, param map[string]interface{}) *gorm.DB {
-	return db.Where(param).Find(&cc.Comments)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

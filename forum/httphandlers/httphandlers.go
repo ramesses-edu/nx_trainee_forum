@@ -166,6 +166,7 @@ func responseXML(r *http.Request) bool {
 
 func xmlWrite(w http.ResponseWriter, data interface{}) error {
 	xmlB, err := xml.MarshalIndent(data, "", " ")
+	
 	if err != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return err

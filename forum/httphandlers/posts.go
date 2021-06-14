@@ -82,8 +82,7 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	var pp models.Posts
-	result := pp.ListPosts(DB, param)
+	pp, result := listPosts(DB, param)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			ResponseError(w, http.StatusNotFound, "")
@@ -93,10 +92,16 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if responseXML(r) {
-		xmlWrite(w, pp)
+		xmlWrite(w, models.Posts{Posts: pp})
 	} else {
-		jsonWrite(w, pp.Posts)
+		jsonWrite(w, pp)
 	}
+}
+
+func listPosts(db *gorm.DB, param map[string]interface{}) ([]models.Post, *gorm.DB) {
+	pp := []models.Post{}
+	tx := db.Where(param).Find(&pp)
+	return pp, tx
 }
 
 //@Summary Show a posts
@@ -289,15 +294,14 @@ func listPostCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	var cc models.Comments
-	result := cc.ListComments(DB, param)
+	cc, result := listComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if responseXML(r) {
-		xmlWrite(w, cc)
+		xmlWrite(w, models.Comments{Comments: cc})
 	} else {
-		jsonWrite(w, cc.Comments)
+		jsonWrite(w, cc)
 	}
 }

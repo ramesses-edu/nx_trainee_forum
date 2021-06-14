@@ -71,17 +71,22 @@ func listCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	var cc models.Comments
-	result := cc.ListComments(DB, param)
+	cc, result := listComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
 	if responseXML(r) {
-		xmlWrite(w, cc)
+		xmlWrite(w, models.Comments{Comments: cc})
 	} else {
-		jsonWrite(w, cc.Comments)
+		jsonWrite(w, cc)
 	}
+}
+
+func listComments(db *gorm.DB, param map[string]interface{}) ([]models.Comment, *gorm.DB) {
+	cc := []models.Comment{}
+	tx := db.Where(param).Find(&cc)
+	return cc, tx
 }
 
 //@Summary Show comment

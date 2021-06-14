@@ -6,13 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type Posts struct {
+type Posts struct { //structure for response array of posts in xml format
 	XMLName xml.Name `xml:"posts" json:"-" gorm:"-"`
 	Posts   []Post   `xml:"post"`
-}
-
-func (pp *Posts) ListPosts(db *gorm.DB, param map[string]interface{}) *gorm.DB {
-	return db.Where(param).Find(&pp.Posts)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
