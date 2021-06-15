@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Comments struct { //structure for response array of comments in xml format 
+type Comments struct { //structure for response array of comments in xml format
 	XMLName  xml.Name  `xml:"comments" json:"-" gorm:"-"`
 	Comments []Comment `xml:"comment"`
 }
@@ -42,4 +42,10 @@ func (c *Comment) UpdateComment(db *gorm.DB) *gorm.DB {
 }
 func (c *Comment) DeleteComment(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", c.UserID).Delete(&c)
+}
+
+func ListComments(db *gorm.DB, param map[string]interface{}) ([]Comment, *gorm.DB) {
+	cc := []Comment{}
+	tx := db.Where(param).Find(&cc)
+	return cc, tx
 }

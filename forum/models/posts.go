@@ -33,3 +33,9 @@ func (p *Post) UpdatePost(db *gorm.DB) *gorm.DB {
 func (p *Post) DeletePost(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", p.UserID).Delete(&p)
 }
+
+func ListPosts(db *gorm.DB, param map[string]interface{}) ([]Post, *gorm.DB) {
+	pp := []Post{}
+	tx := db.Where(param).Find(&pp)
+	return pp, tx
+}

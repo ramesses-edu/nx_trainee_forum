@@ -71,7 +71,7 @@ func listCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	cc, result := listComments(DB, param)
+	cc, result := models.ListComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
@@ -81,12 +81,6 @@ func listCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 	} else {
 		jsonWrite(w, cc)
 	}
-}
-
-func listComments(db *gorm.DB, param map[string]interface{}) ([]models.Comment, *gorm.DB) {
-	cc := []models.Comment{}
-	tx := db.Where(param).Find(&cc)
-	return cc, tx
 }
 
 //@Summary Show comment
