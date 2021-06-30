@@ -82,8 +82,8 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	m := models.Models{}
-	pp, result := m.ListPosts(DB, param)
+	ppr := new(models.PostProcess)
+	pp, result := ppr.ListPosts(DB, param)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			ResponseError(w, http.StatusNotFound, "")
@@ -118,8 +118,8 @@ func getPostByIDHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	m := models.Models{}
-	p, result := m.GetPost(DB, param)
+	ppr := models.PostProcess{}
+	p, result := ppr.GetPost(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusNotFound, "")
 		return
@@ -175,8 +175,8 @@ func createPostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		return
 	}
 	p.UserID = u.ID
-	m := models.Models{}
-	result := m.CreatePost(DB, &p)
+	ppr := models.PostProcess{}
+	result := ppr.CreatePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -216,8 +216,8 @@ func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
-	m := models.Models{}
-	pUpd, result := m.GetPost(DB, map[string]interface{}{"id": p.ID})
+	ppr := models.PostProcess{}
+	pUpd, result := ppr.GetPost(DB, map[string]interface{}{"id": p.ID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -226,7 +226,7 @@ func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	result = m.UpdatePost(DB, &p)
+	result = ppr.UpdatePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -255,9 +255,9 @@ func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
-	m := models.Models{}
+	ppr := models.PostProcess{}
 	var pDel models.Post
-	pDel, result := m.GetPost(DB, map[string]interface{}{"id": pID})
+	pDel, result := ppr.GetPost(DB, map[string]interface{}{"id": pID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -267,7 +267,7 @@ func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		return
 	}
 	var p models.Post = models.Post{ID: pID, UserID: u.ID}
-	result = m.DeletePost(DB, &p)
+	result = ppr.DeletePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
@@ -291,8 +291,8 @@ func listPostCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	m := models.Models{}
-	cc, result := m.ListComments(DB, param)
+	cpr := models.CommentProcess{}
+	cc, result := cpr.ListComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
