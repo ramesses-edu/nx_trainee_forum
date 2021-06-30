@@ -22,10 +22,6 @@ type Comment struct {
 	Body   string `json:"body" gorm:"column:body;type:VARCHAR(256)"`
 }
 
-func (c *Comment) GetComment(db *gorm.DB, param map[string]interface{}) *gorm.DB {
-	return db.Where(param).First(&c)
-}
-
 func (c *Comment) CreateComment(db *gorm.DB) *gorm.DB {
 	reEmail := regexp.MustCompile(`^[^@]+@[^@]+\.\w{1,5}$`)
 	if c.Email != "" && !reEmail.Match([]byte(c.Email)) {
@@ -42,10 +38,4 @@ func (c *Comment) UpdateComment(db *gorm.DB) *gorm.DB {
 }
 func (c *Comment) DeleteComment(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", c.UserID).Delete(&c)
-}
-
-func ListComments(db *gorm.DB, param map[string]interface{}) ([]Comment, *gorm.DB) {
-	cc := []Comment{}
-	tx := db.Where(param).Find(&cc)
-	return cc, tx
 }

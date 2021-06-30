@@ -20,10 +20,6 @@ type Post struct {
 	Comments []Comment `xml:"-" json:"-" gorm:"foreignKey:PostID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
-func (p *Post) GetPost(db *gorm.DB, param map[string]interface{}) *gorm.DB {
-	return db.Where(param).First(&p)
-}
-
 func (p *Post) CreatePost(db *gorm.DB) *gorm.DB {
 	return db.Select("UserID", "Title", "Body").Create(&p)
 }
@@ -34,8 +30,3 @@ func (p *Post) DeletePost(db *gorm.DB) *gorm.DB {
 	return db.Where("userId = ?", p.UserID).Delete(&p)
 }
 
-func ListPosts(db *gorm.DB, param map[string]interface{}) ([]Post, *gorm.DB) {
-	pp := []Post{}
-	tx := db.Where(param).Find(&pp)
-	return pp, tx
-}

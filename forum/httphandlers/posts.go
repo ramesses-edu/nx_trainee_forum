@@ -82,7 +82,8 @@ func listPostsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	pp, result := models.ListPosts(DB, param)
+	m := models.Models{}
+	pp, result := m.ListPosts(DB, param)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			ResponseError(w, http.StatusNotFound, "")
@@ -117,8 +118,8 @@ func getPostByIDHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	var p models.Post
-	result := p.GetPost(DB, param)
+	m := models.Models{}
+	p, result := m.GetPost(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusNotFound, "")
 		return
@@ -214,8 +215,8 @@ func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
-	var pUpd models.Post
-	result := pUpd.GetPost(DB, map[string]interface{}{"id": p.ID})
+	m := models.Models{}
+	pUpd, result := m.GetPost(DB, map[string]interface{}{"id": p.ID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -253,8 +254,9 @@ func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
+	m := models.Models{}
 	var pDel models.Post
-	result := pDel.GetPost(DB, map[string]interface{}{"id": pID})
+	pDel, result := m.GetPost(DB, map[string]interface{}{"id": pID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -288,7 +290,8 @@ func listPostCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	cc, result := models.ListComments(DB, param)
+	m := models.Models{}
+	cc, result := m.ListComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return

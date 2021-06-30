@@ -71,7 +71,8 @@ func listCommentsHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	cc, result := models.ListComments(DB, param)
+	m := models.Models{}
+	cc, result := m.ListComments(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
@@ -99,8 +100,9 @@ func getCommentByIDHTTP(DB *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
+	m := models.Models{}
 	var cmnt models.Comment
-	result := cmnt.GetComment(DB, param)
+	cmnt, result := m.GetComment(DB, param)
 	if result.Error != nil {
 		ResponseError(w, http.StatusNotFound, "")
 		return
@@ -199,8 +201,9 @@ func updateCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 		ResponseError(w, http.StatusInternalServerError, "")
 		return
 	}
+	m := models.Models{}
 	var cUpd models.Comment
-	result := cUpd.GetComment(DB, map[string]interface{}{"id": c.ID})
+	cUpd, result := m.GetComment(DB, map[string]interface{}{"id": c.ID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -238,8 +241,9 @@ func deleteCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
+	m := models.Models{}
 	var cDel models.Comment
-	result := cDel.GetComment(DB, map[string]interface{}{"id": cID})
+	cDel, result := m.GetComment(DB, map[string]interface{}{"id": cID})
 	if result.Error != nil || result.RowsAffected == 0 {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
