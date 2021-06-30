@@ -175,7 +175,8 @@ func createPostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		return
 	}
 	p.UserID = u.ID
-	result := p.CreatePost(DB)
+	m := models.Models{}
+	result := m.CreatePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -225,7 +226,7 @@ func updatePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	result = p.UpdatePost(DB)
+	result = m.UpdatePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -266,7 +267,7 @@ func deletePostHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r *h
 		return
 	}
 	var p models.Post = models.Post{ID: pID, UserID: u.ID}
-	result = p.DeletePost(DB)
+	result = m.DeletePost(DB, &p)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return

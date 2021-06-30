@@ -2,8 +2,6 @@ package models
 
 import (
 	"encoding/xml"
-
-	"gorm.io/gorm"
 )
 
 type Posts struct { //structure for response array of posts in xml format
@@ -19,14 +17,3 @@ type Post struct {
 	Body     string    `json:"body" gorm:"column:body;type:VARCHAR(256)"`
 	Comments []Comment `xml:"-" json:"-" gorm:"foreignKey:PostID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
-
-func (p *Post) CreatePost(db *gorm.DB) *gorm.DB {
-	return db.Select("UserID", "Title", "Body").Create(&p)
-}
-func (p *Post) UpdatePost(db *gorm.DB) *gorm.DB {
-	return db.Model(&p).Updates(Post{Title: p.Title, Body: p.Body})
-}
-func (p *Post) DeletePost(db *gorm.DB) *gorm.DB {
-	return db.Where("userId = ?", p.UserID).Delete(&p)
-}
-

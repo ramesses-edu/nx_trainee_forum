@@ -161,7 +161,8 @@ func createCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 		return
 	}
 	c.UserID = u.ID
-	result := c.CreateComment(DB)
+	m := models.Models{}
+	result := m.CreateComment(DB, &c)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -210,7 +211,7 @@ func updateCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 		ResponseError(w, http.StatusBadRequest, "")
 		return
 	}
-	result = c.UpdateComment(DB)
+	result = m.UpdateComment(DB, &c)
 	if result.Error != nil {
 		ResponseError(w, http.StatusBadRequest, "")
 		return
@@ -250,7 +251,7 @@ func deleteCommentHTTP(cfg *config.Config, DB *gorm.DB, w http.ResponseWriter, r
 		return
 	}
 	var c models.Comment = models.Comment{ID: cID, UserID: u.ID}
-	result = c.DeleteComment(DB)
+	result = m.DeleteComment(DB, &c)
 	if result.Error != nil {
 		ResponseError(w, http.StatusInternalServerError, "")
 		return

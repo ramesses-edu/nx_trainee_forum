@@ -2,9 +2,6 @@ package models
 
 import (
 	"encoding/xml"
-	"regexp"
-
-	"gorm.io/gorm"
 )
 
 type Comments struct { //structure for response array of comments in xml format
@@ -20,22 +17,4 @@ type Comment struct {
 	Name   string `json:"name" gorm:"column:name;type:VARCHAR(256)"`
 	Email  string `json:"email" gorm:"column:email;type:VARCHAR(256)"`
 	Body   string `json:"body" gorm:"column:body;type:VARCHAR(256)"`
-}
-
-func (c *Comment) CreateComment(db *gorm.DB) *gorm.DB {
-	reEmail := regexp.MustCompile(`^[^@]+@[^@]+\.\w{1,5}$`)
-	if c.Email != "" && !reEmail.Match([]byte(c.Email)) {
-		return &gorm.DB{Error: gorm.ErrInvalidValue}
-	}
-	return db.Select("PostID", "UserID", "Name", "Email", "Body").Create(&c)
-}
-func (c *Comment) UpdateComment(db *gorm.DB) *gorm.DB {
-	reEmail := regexp.MustCompile(`^[^@]+@[^@]+\.\w{1,5}$`)
-	if c.Email != "" && !reEmail.Match([]byte(c.Email)) {
-		return &gorm.DB{Error: gorm.ErrInvalidValue}
-	}
-	return db.Model(&c).Updates(Comment{Name: c.Name, Email: c.Email, Body: c.Body})
-}
-func (c *Comment) DeleteComment(db *gorm.DB) *gorm.DB {
-	return db.Where("userId = ?", c.UserID).Delete(&c)
 }
